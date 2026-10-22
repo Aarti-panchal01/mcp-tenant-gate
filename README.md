@@ -113,7 +113,7 @@ Python 3.11+ (tested on 3.13, Windows 11).
 python -m venv .venv
 .venv\Scripts\activate          # or: source .venv/bin/activate
 pip install -r requirements.txt
-python -m pytest -q             # 132 tests, about 20 s, includes two end-to-end stdio tests
+python -m pytest -q             # 136 tests, about 20 s, includes two end-to-end stdio tests
 python -m attacks.suite
 ```
 
@@ -223,6 +223,8 @@ What this says, plainly:
 ## CI
 
 `.github/workflows/ci.yml` runs on every push and pull request, on Python 3.11 and 3.13 (Ubuntu): the full pytest suite including the two stdio end-to-end tests, then the attack suite (it exits non-zero if any attack gets through or any benign call is blocked), then the held-out eval. A test also fails the build if the held-out test split gets a false block or drops below 14/60.
+
+The first CI run failed, and it was a real bug: about 1 in 500 random note ids (for example `note-960628600311`) matched the phone or Aadhaar shape, got redacted in the create result, and the tenant could then not read its own note. It never showed on my machine because the ids are random. Digits glued to a word are no longer treated as PII, and those ids are now a regression test.
 
 ## Limits
 
