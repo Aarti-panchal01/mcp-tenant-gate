@@ -12,9 +12,13 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+train = ["scikit-learn>=1.5", "scipy>=1.11", "numpy>=1.26"]  # only to retrain the classifier
 
 [tool.setuptools]
 packages = ["mcp_tenant_gate", "mcp_tenant_gate.scanners", "upstreams", "attacks", "evals", "demo"]
+
+[tool.setuptools.package-data]
+"mcp_tenant_gate.scanners" = ["clf_model.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

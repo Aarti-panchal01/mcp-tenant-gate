@@ -16,15 +16,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from . import Finding
+from .classifier import classify
 from .text_rules import base64_blobs, imperatives, invisible_chars, strip_invisible, urls
 
 WRAP_OPEN = "<<untrusted_tool_output upstream={upstream}>>"
 WRAP_CLOSE = "<<end_untrusted_tool_output>>"
 
 
-def scan_result(text: str, allow_hosts: list[str] | None = None) -> list[Finding]:
+def scan_result(text: str, allow_hosts: list[str] | None = None, use_classifier: bool = True) -> list[Finding]:
     allow_hosts = allow_hosts or []
     found = invisible_chars(text) + imperatives(text) + base64_blobs(text)
+    if use_classifier:
+        # layer 2: normalised text + small trained classifier (see classifier.py)
+        found += classify(text)
     # plain external links in results are normal (search results, web pages); only flag exfil-shaped ones
     found += [f for f in urls(text, allow_hosts) if f.severity == "high"]
     # secret_word is too common in ordinary data to matter on its own
@@ -38,8 +42,9 @@ class InjectionDecision:
     text: str
 
 
-def decide(text: str, mode: str, upstream: str, allow_hosts: list[str] | None = None) -> InjectionDecision:
-    findings = scan_result(text, allow_hosts)
+def decide(text: str, mode: str, upstream: str, allow_hosts: list[str] | None = None,
+           use_classifier: bool = True) -> InjectionDecision:
+    findings = scan_result(text, allow_hosts, use_classifier)
     if not findings:
         return InjectionDecision("pass", [], text)
     high = any(f.severity == "high" for f in findings)

@@ -53,7 +53,23 @@ def load() -> list[dict]:
     return rows
 
 
+def stdlib_side(filename: str) -> str:
+    """Which side of the stdlib split a module is on: "train" modules feed the classifier as extra
+    negatives, "eval" modules are only ever scored."""
+    import zlib
+    return "train" if zlib.crc32(filename.encode()) % 2 == 0 else "eval"
+
+
+def dev_benign() -> list[str]:
+    """My own benign sentences, used as extra training negatives for the classifier (dev data)."""
+    return [t for t in (ROOT / "evals" / "data" / "dev_benign.txt").read_text(encoding="utf-8").splitlines() if t.strip()]
+
+
 def stdlib_paragraphs() -> list[str]:
+    return [p for _, p in stdlib_paragraphs_by_file()]
+
+
+def stdlib_paragraphs_by_file() -> list[tuple[str, str]]:
     """Benign technical text: every docstring paragraph (40+ chars) in the top-level
     standard library modules of the running Python. Closer to real tool output
     (docs, READMEs) than chat questions, and full of words like "ignore" and "send"."""
@@ -70,7 +86,7 @@ def stdlib_paragraphs() -> list[str]:
                 for para in re.split(r"\n\s*\n", doc or ""):
                     para = " ".join(para.split())
                     if len(para) >= 40:
-                        out.append(para)
+                        out.append((f.name, para))
     return out
 
 
@@ -98,7 +114,7 @@ def run(use_judge: bool) -> dict:
         raise SystemExit("--judge needs MTG_JUDGE=groq|anthropic and the matching API key")
     t0 = time.perf_counter()
     for r in rows:
-        d = decide(r["text"], "quarantine", "eval")
+        d = decide(r["text"], "quarantine", "eval", use_classifier=False)
         r["action"] = d.action
         r["rules"] = sorted({f.rule for f in d.findings})
         r["blocked"] = d.action == "quarantine"
@@ -119,7 +135,7 @@ def run(use_judge: bool) -> dict:
         if judge:
             out["groups"][name]["blocked_with_judge"] = metrics(g, "blocked_with_judge")
     paras = stdlib_paragraphs()
-    actions = [decide(p, "quarantine", "eval").action for p in paras]
+    actions = [decide(p, "quarantine", "eval", use_classifier=False).action for p in paras]
     out["stdlib_docs"] = {"python": sys.version.split()[0], "paragraphs": len(paras),
                           "blocked": actions.count("quarantine"), "wrapped": actions.count("wrap")}
     rule_counts: dict[str, int] = {}

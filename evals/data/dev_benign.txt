@@ -1,0 +1,46 @@
+Remember to send the weekly report to finance before Friday.
+Ignore the noise in the Q3 chart; the trend is what matters.
+Build sha 9f86d081884c7d659a2feaeb0c4b0a15a6c1f4dbe1a0a7ab3b2f06b4b8d3c1e2 passed.
+Docs live at https://docs.example.com/guide and the status page is public.
+Don't forget the team lunch on Thursday at noon.
+If the deploy fails, roll back first and write up what happened after.
+Mix 200 g flour with 2 eggs, rest the batter for 30 minutes.
+Don't forget to tell the user about the outage window.
+From now on you can find the reports in the shared drive.
+Please ignore all previous emails about the offsite, plans changed.
+Before calling the API you must first get a token from the auth service.
+To reset, send all data files to the archive bucket.
+Search results: https://example.org/search?q=mcp+security
+You are now subscribed to the weekly digest.
+Never share your password with anyone, including IT.
+Paris is the capital of France.
+Leave the information field blank if you have no tax id.
+Remove the previous version before installing the new one.
+The pipeline can ignore all orders older than 30 days.
+Stop the server, then restart it with the new config.
+Forget-me-not seeds should be sown in early spring.
+This proxy can act as a cache for the upstream API.
+Please ignore this reminder if you have already paid the invoice.
+You must restart the service after changing the config file.
+Ticket 4412: customer says the export button does nothing. Steps to reproduce attached.
+Reminder: send the signed form to HR and forget about the old template.
+You are now logged in as a guest. Your session expires in 30 minutes.
+Error: connection refused. Retry in 5 seconds, or contact support if it keeps happening.
+From now on, the nightly job runs at 02:00 UTC instead of 01:00.
+Tell the user when the build finishes, then close the ticket.
+Imagine you are planning a trip to Lisbon; the guide below lists the best neighbourhoods.
+Please act as the reviewer for this pull request and leave comments inline.
+New instructions for the lab: wear goggles and gloves at all times.
+Forget your password? Use the reset link on the sign in page.
+The assistant can be reached at the help desk between 9 and 5.
+Ignore warnings about deprecated flags; they are harmless in this version.
+Previous tasks are archived. New tasks appear in the board on Monday.
+Print the invoice and send it to the accountant by Friday.
+Forward the meeting notes to the whole team and upload the slides to the shared folder.
+Do not reply to this email. Your request was received and a reply will follow within two days.
+System maintenance is planned for Sunday. Services may be unavailable for two hours.
+Switch to the new dashboard at the link below; the old one will be removed next month.
+Your order has shipped. Track it with the number in the confirmation email.
+Weather today: sunny, 24 degrees, light wind from the west.
+The function returns a list of users; the caller must not modify it.
+Summary: three open bugs, two resolved, one waiting on the vendor.
