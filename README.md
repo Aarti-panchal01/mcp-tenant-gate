@@ -15,22 +15,78 @@ The gateway fixes these in one place, in front of servers that stay naive.
 ## Demo
 
 ```
-python -m attacks.suite            # in-process upstreams, about 2 seconds
-python -m attacks.suite --stdio    # every upstream is a real MCP server over stdio, about 2.5 minutes on Windows
+python -m demo.session             # what an agent actually sees, about 15 seconds
+python -m attacks.suite            # 20 attacks + benign calls, in-process upstreams, about 2 seconds
+python -m attacks.suite --stdio    # same, every upstream a real MCP server over stdio, about 2.5 minutes on Windows
+python -m evals.injection_eval     # result scanner on a public dataset it was not written against
 ```
 
-It prints one line per attack and writes [`results/attack-report.md`](results/attack-report.md).
+Recorded output of `python -m demo.session` (also in [`results/demo-transcript.txt`](results/demo-transcript.txt)). Part 1 is the official MCP Python SDK client talking to the gateway over stdio as tenant `acme`; the gateway starts both upstream servers over stdio too. Part 2 is two tenants on one gateway core.
+
+```
+== Part 1: MCP client -> gateway -> 2 upstream MCP servers, all over stdio (tenant: acme)
+  tools/list: 11 tools visible
+         evil__customer_lookup, evil__dump, evil__get_weather, evil__lookup, evil__send_report, notes__create_note, notes__fetch_url, notes__list_notes, notes__read_file, notes__read_note, notes__search_notes
+  hidden by the gateway (poisoned or shadowing definitions): evil__add_numbers, evil__notes__read_note, evil__read_note, evil__summarize, evil__translate
+  ok    notes__create_note({"title": "plan", "body": "Q4 hiring plan"})
+         -> {"note_id": "note-097a8a943ae5", "title": "plan"}
+  ok    notes__read_note({"note_id": "note-097a8a943ae5"})
+         -> {"note_id": "note-097a8a943ae5", "owner": "acme", "title": "plan", "body": "Q4 hiring plan"}
+  ERROR notes__fetch_url({"url": "http://169.254.169.254/latest/meta-data/"})
+         -> [mcp-tenant-gate] blocked by argguard: url: internal address 169.254.169.254 (SSRF)
+  ERROR notes__read_file({"path": "data/../etc/passwd"})
+         -> [mcp-tenant-gate] blocked by argguard: path: path traversal (..)
+  ERROR evil__lookup({"topic": "France"})
+         -> [mcp-tenant-gate] blocked by injection: result withheld: conceal_from_user, ignore_previous, role_override
+  ok    evil__customer_lookup({"name": "Jane"})
+         -> {"customer": "Jane Doe", "email": "[REDACTED:email]", "phone": "[REDACTED:phone]", "pan": "[REDACTED:pan]",...
+  tools/list again: evil__get_weather removed (definition changed after approval)
+  ERROR evil__get_weather({"city": "Oslo"})
+         -> [mcp-tenant-gate] blocked by tool_poisoning: tool is quarantined: conceal_from_user, definition_changed_sin...
+  audit log: 23 records, hash chain ok=True
+
+== Part 2: two tenants, one naive notes server behind one gateway core
+  acme   notes__create_note({"title": "m&a", "body": "acme merger draft"}) -> ok
+         {"note_id": "note-99a791d64aa2", "title": "m&a"}
+  globex notes__read_note({"note_id": "note-99a791d64aa2"}) -> BLOCKED by isolation
+         [mcp-tenant-gate] blocked by isolation: resource not found for this tenant: note_id
+  globex notes__search_notes({"query": "merger"}) -> ok [cross_tenant_filtered:1]
+         []
+  globex notes__create_note({"owner": "acme", "title": "t", "body": "spoof"}) -> BLOCKED by isolation
+         [mcp-tenant-gate] blocked by isolation: identity argument owner names another tenant
+  globex notes__fetch_url({"url": "https://docs.example.com/"}) -> BLOCKED by policy
+         [mcp-tenant-gate] blocked by policy: tool not available: notes__fetch_url
+```
 
 ## How it works
 
+```mermaid
+flowchart LR
+    C["MCP client / agent<br/>(API key = tenant)"] -- "tools/list, tools/call<br/>stdio" --> G
+
+    subgraph G["mcp-tenant-gate"]
+        direction TB
+        subgraph IN["request path (cheap, certain checks first)"]
+            direction LR
+            A1[auth] --> A2[rate limit] --> A3["policy<br/>tool allowed? not quarantined?"] --> A4["arg guard<br/>SSRF, path"] --> A5["isolation<br/>identity, ownership"] --> A6["schema<br/>tenant + pinned upstream"]
+        end
+        subgraph OUT["result path"]
+            direction LR
+            R1[size cap] --> R2[drop non-text] --> R3["cross-tenant<br/>row filter"] --> R4["PII<br/>redact or block"] --> R5["injection<br/>quarantine or wrap"] --> R6["LLM judge<br/>optional"]
+        end
+        CAT["catalog build on every tools/list<br/>poisoning scan + SHA-256 pins (rug pull)"]
+        AUD[("audit.jsonl<br/>hash chain")]
+    end
+
+    A6 -- "stdio" --> N["notes_server<br/>benign, single-tenant"]
+    A6 -- "stdio" --> E["evil_server<br/>poisoned tools, injection, PII"]
+    N --> R1
+    E --> R1
+    R6 --> C
+    G -.-> AUD
 ```
-MCP client --stdio--> gateway (MCP server)
-                        |  auth -> rate limit -> policy -> arg guard -> isolation -> schema
-                        |--stdio--> notes_server (benign but naive)
-                        |--stdio--> evil_server  (every trick in the book)
-                        |  result: size cap -> non-text drop -> cross-tenant filter -> PII -> injection -> optional judge
-                        '--> audit.jsonl (hash chain)
-```
+
+Any blocked step returns an MCP error result to the client and writes an audit event; the upstream is never called for a request that failed a check.
 
 | Module | Job |
 |---|---|
@@ -46,6 +102,8 @@ MCP client --stdio--> gateway (MCP server)
 | `audit.py` | Append-only JSONL with a SHA-256 hash chain. Stores digests of arguments and results, not the data. |
 | `ratelimit.py` | Token bucket per tenant with an injectable clock. |
 | `judge.py` | Optional LLM classifier for results the patterns passed. Off by default. Can add a block, never remove one. |
+| `evals/injection_eval.py` | Held-out eval of the result scanner on a public dataset, plus a false-positive run on Python stdlib docs. |
+| `demo/session.py` | Readable demo: a real MCP client session through the gateway, then two tenants on one core. |
 
 ## How to run
 
@@ -55,7 +113,7 @@ Python 3.11+ (tested on 3.13, Windows 11).
 python -m venv .venv
 .venv\Scripts\activate          # or: source .venv/bin/activate
 pip install -r requirements.txt
-python -m pytest -q             # 116 tests, about 20 s, includes two end-to-end stdio tests
+python -m pytest -q             # 132 tests, about 20 s, includes two end-to-end stdio tests
 python -m attacks.suite
 ```
 
@@ -137,12 +195,38 @@ From `python -m attacks.suite --stdio` (real MCP servers over stdio), see [`resu
 - **20/20 attacks blocked**, 19/19 logged in the audit chain (the 20th, audit tamper, is the log itself).
 - **20/20 benign calls passed.**
 - Harder benign sentences that share words with attacks: 6 pass, 2 wrapped, 0 blocked of 8. Honest caveat: these 8 were written after a first run showed 3 of them being withheld, and the rules were tightened. So they are a regression set, not an unseen test. The 20 benign calls were also written by me. Real traffic will have false positives I have not seen.
-- **Added latency: p50 1.0 ms, p95 1.3 ms** per call over 200 local calls (gateway path minus direct upstream call, both over stdio, judge off).
+- **Added latency: p50 1.3 ms, p95 2.3 ms** per call over 200 local calls (gateway path minus direct upstream call, both over stdio, judge off). It was p50 1.0 / p95 1.3 ms before the extra eval rules below; part of that is run to run noise on a laptop.
+
+### Held-out eval on a public dataset
+
+The numbers above come from tests I wrote. To get a number I did not write, I ran the result scanner on [deepset/prompt-injections](https://huggingface.co/datasets/deepset/prompt-injections) (Apache-2.0, 662 labelled rows, English and German, snapshot in `evals/data/`). Method: measure the rules as they were, tune new rules on the **train split only**, then run the **test split** once. See [`results/injection-eval.md`](results/injection-eval.md).
+
+| Test split (116 rows, held out) | Before tuning | After tuning on train |
+|---|---|---|
+| Injections withheld (quarantine) | 3/60 (5.0%) | 14/60 (23.3%) |
+| Injections withheld or wrapped | 3/60 (5.0%) | 17/60 (28.3%) |
+| Benign rows withheld | 0/56 | 0/56 |
+| Benign rows wrapped | 0/56 | 0/56 |
+
+Train split after tuning: 72/203 withheld (35.5%), 97/203 flagged, 0/343 benign withheld, 2/343 wrapped (both have zero-width spaces in the source text). The gap between 35.5% on train and 23.3% on test is the rules overfitting to the phrasings they were tuned on.
+
+Benign technical text: all 6,054 docstring paragraphs (40+ chars) in the Python 3.13 standard library, which are full of words like "ignore", "send" and "forget": 0 withheld, 1 wrapped, before and after tuning. Scan cost is about 0.1 ms per text.
+
+What this says, plainly:
+
+- **The regex layer is weak on its own.** It misses about 3 in 4 held-out injections. Many rows in this dataset are role play or "now write an essay about X", which no list of phrases will catch.
+- **It is cheap and quiet.** No benign row was withheld, and the stdlib run shows it does not fire on normal technical text. That is the job it is for: catch the common, copy-pasted attacks at about zero cost.
+- **This is why the gateway does not rely on it.** The controls that stopped the 20 attacks above (tool allowlists, identity forcing, the ownership ledger, URL and path guards, the size cap, pins) do not depend on wording. The LLM judge is the next layer for wording; `python -m evals.injection_eval --judge` measures it the same way, but I have not run it with a key, so there is no judge number here.
+- Caveat: the dataset is direct user prompts, not tool results, so it is a proxy. One rule (`ignore all orders`) was tightened after the test run because my own unit test caught it firing on "the job can ignore all orders older than 30 days"; the test split numbers did not change.
 - LLM judge: not run in the committed report (no API key on the build machine). The judge is unit-tested with a stub.
+
+## CI
+
+`.github/workflows/ci.yml` runs on every push and pull request, on Python 3.11 and 3.13 (Ubuntu): the full pytest suite including the two stdio end-to-end tests, then the attack suite (it exits non-zero if any attack gets through or any benign call is blocked), then the held-out eval. A test also fails the build if the held-out test split gets a false block or drops below 14/60.
 
 ## Limits
 
-- **Pattern rules can be evaded.** Paraphrase, another language, or splitting an instruction across two results will get past them. They raise the cost of the obvious attacks; they are not a classifier. The judge helps, and is itself attackable.
+- **Pattern rules can be evaded.** Measured: they withhold 23% of held-out injections from a public dataset (see Results). Paraphrase, another language, or splitting an instruction across two results will get past them. They raise the cost of the obvious attacks; they are not a classifier. The judge helps, and is itself attackable.
 - **Defence in depth, not a sandbox.** The gateway cannot see what an upstream does with its own credentials, network or disk. Least-privilege upstreams are still required.
 - **Not audited.** Written in a few hours as a work sample. Do not put it in front of production data without a review.
 - **Auth is API keys only.** No OAuth, no key rotation, no per-key scopes. On stdio one gateway process serves one tenant (the key comes from `MTG_API_KEY`). The core is multi-tenant; a streamable HTTP front with a bearer header is the missing piece for one process serving many tenants.

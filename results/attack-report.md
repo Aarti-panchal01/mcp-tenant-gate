@@ -54,9 +54,9 @@ pass 6, wrap 2, blocked 0 of 8.
 
 | | p50 ms | p95 ms |
 |---|---|---|
-| direct upstream call | 1.028 | 1.243 |
-| through gateway | 2.062 | 2.388 |
-| added by gateway | 1.036 | 1.302 |
+| direct upstream call | 1.325 | 2.247 |
+| through gateway | 2.686 | 4.132 |
+| added by gateway | 1.314 | 2.325 |
 
 ## LLM judge
 
