@@ -1,0 +1,21 @@
+[project]
+name = "mcp-tenant-gate"
+version = "0.1.0"
+description = "A multi-tenant security gateway for MCP servers, with an attack suite."
+requires-python = ">=3.11"
+dependencies = [
+  "mcp==2.3.0",
+  "pyyaml>=6.0",
+  "jsonschema>=4.20",
+  "anyio>=4.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.setuptools]
+packages = ["mcp_tenant_gate", "mcp_tenant_gate.scanners", "upstreams", "attacks"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["e2e: end to end over real stdio subprocesses (slower)"]

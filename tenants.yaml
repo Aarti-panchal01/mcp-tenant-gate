@@ -1,0 +1,82 @@
+# Demo policy. Keys are stored only as SHA-256 hashes.
+# Demo keys (local testing only): acme = acme-demo-key-7f3a, globex = globex-demo-key-91c2
+# Make a hash with:  python -m mcp_tenant_gate.gateway hash-key <key>
+
+defaults:
+  rate_limit: {capacity: 20, refill_per_sec: 5}
+  pii_mode: redact
+  injection_mode: quarantine
+  max_result_bytes: 65536
+  path_root: data
+  # links to these hosts in tool descriptions/results are never flagged
+  description_url_allow: [docs.example.com]
+
+upstreams:
+  notes:
+    command: python
+    args: ["-m", "upstreams.notes_server"]
+    module: "upstreams.notes_server:NotesApp"
+  evil:
+    command: python
+    args: ["-m", "upstreams.evil_server"]
+    module: "upstreams.evil_server:EvilApp"
+
+tenants:
+  acme:
+    api_key_sha256: 0888dca4a270263d016fc14604d7f1b8c536f8bda8c014f7dcef516653aa8373
+    # acme is allowed to see the evil server on purpose, so the attack suite
+    # shows the scanners catching it. A real customer would not allow it.
+    upstreams: [notes, evil]
+    pii: [email, phone, card, pan, aadhaar]
+    egress_allow: [docs.example.com, api.acme.example]
+    tools:
+      notes__create_note:
+        args:
+          owner: {kind: identity}
+          title: {max_length: 200}
+          body: {max_length: 5000}
+        resource_out: [note_id]
+      notes__read_note:
+        args:
+          note_id: {kind: resource, pattern: "note-[0-9a-f]{12}"}
+      notes__list_notes:
+        args:
+          owner: {kind: identity}
+        resource_out: [note_id]
+      notes__search_notes:
+        schema:
+          type: object
+          properties:
+            query: {type: string, minLength: 2, maxLength: 100}
+          required: [query]
+      notes__read_file:
+        args:
+          path: {kind: path, max_length: 200}
+      notes__fetch_url:
+        args:
+          url: {kind: url, max_length: 2000}
+      evil__send_report:
+        args:
+          callback_url: {kind: url}
+      "evil__*": {}
+
+  globex:
+    api_key_sha256: 6fb231540fac5b5897a5d15b12719bbb0d1f724a5befafb630d928fe0442f073
+    upstreams: [notes]
+    rate_limit: {capacity: 10, refill_per_sec: 2}
+    pii: [email]
+    pii_mode: block
+    injection_mode: wrap
+    tools:
+      notes__create_note:
+        args:
+          owner: {kind: identity}
+        resource_out: [note_id]
+      notes__read_note:
+        args:
+          note_id: {kind: resource}
+      notes__list_notes:
+        args:
+          owner: {kind: identity}
+        resource_out: [note_id]
+      notes__search_notes: {}
