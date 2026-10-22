@@ -125,3 +125,10 @@ def test_pii_only_configured_categories():
     text = "mail jane@example.com pan ABCPE1234F"
     red, counts = pii.redact(text, ["email"])
     assert counts == {"email": 1} and "ABCPE1234F" in red and "jane@" not in red
+
+
+@pytest.mark.parametrize("nid", ["note-6257903374bf", "note-960628600311", "note-8358952049e4", "note-06276071911e"])
+def test_resource_ids_are_not_redacted_as_pii(nid):
+    # these random ids used to match the phone / Aadhaar shapes (found by CI on Linux)
+    text = '{"note_id": "%s", "title": "x"}' % nid
+    assert pii.find_pii(text, ["email", "phone", "card", "pan", "aadhaar"]) == []

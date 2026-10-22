@@ -17,13 +17,16 @@ from dataclasses import dataclass
 
 EMAIL = re.compile(r"\b[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b")
 PHONE = re.compile(
-    r"(?<![\w+])(?:\+91[\s\-]?|0)?[6-9]\d{4}[\s\-]?\d{5}(?!\d)"  # India mobile
+    r"(?<![\w+])(?<!\w-)(?:\+91[\s\-]?|0)?[6-9]\d{4}[\s\-]?\d{5}(?!\w)"  # India mobile
     r"|(?<![\w+])\+(?:[1-9]\d{0,2})[\s\-.]?(?:\(?\d{1,4}\)?[\s\-.]?){2,4}\d{2,4}(?!\d)"  # international with +
     r"|(?<!\d)\(\d{3}\)\s?\d{3}-\d{4}(?!\d)"  # (415) 555-0100
 )
-CARD = re.compile(r"(?<!\d)(?:\d[ \-]?){12,18}\d(?!\d)")
+CARD = re.compile(r"(?<!\w)(?<!\w-)(?:\d[ \-]?){12,18}\d(?!\w)")
 PAN = re.compile(r"\b[A-Z]{3}[PCHFATBLJG][A-Z]\d{4}[A-Z]\b")
-AADHAAR = re.compile(r"(?<!\d)[2-9]\d{3}[ \-]?\d{4}[ \-]?\d{4}(?!\d)")
+# Digits glued to letters or joined by a hyphen to a word ("note-960628600311",
+# "build-9876543210") are ids, not PII. Same boundary on PHONE and CARD above.
+# Found by CI: about 1 in 500 random note ids was being redacted as a phone or Aadhaar.
+AADHAAR = re.compile(r"(?<!\w)(?<!\w-)[2-9]\d{3}[ \-]?\d{4}[ \-]?\d{4}(?!\w)")
 
 _D = [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9], [1, 2, 3, 4, 0, 6, 7, 8, 9, 5], [2, 3, 4, 0, 1, 7, 8, 9, 5, 6],
       [3, 4, 0, 1, 2, 8, 9, 5, 6, 7], [4, 0, 1, 2, 3, 9, 5, 6, 7, 8], [5, 9, 8, 7, 6, 0, 4, 3, 2, 1],
