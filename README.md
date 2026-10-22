@@ -102,6 +102,8 @@ Any blocked step returns an MCP error result to the client and writes an audit e
 | `audit.py` | Append-only JSONL with a SHA-256 hash chain. Stores digests of arguments and results, not the data. |
 | `ratelimit.py` | Token bucket per tenant with an injectable clock. |
 | `judge.py` | Optional LLM classifier for results the patterns passed. Off by default. Can add a block, never remove one. |
+| `scanners/normalize.py`, `scanners/classifier.py`, `scanners/clf_model.json` | Second injection layer: text folding and decoding, plus a small classifier trained on the eval train split. |
+| `evals/train_classifier.py`, `evals/compare_layers.py` | Train the classifier (train split only) and report before/after on the frozen test split. |
 | `evals/injection_eval.py` | Held-out eval of the result scanner on a public dataset, plus a false-positive run on Python stdlib docs. |
 | `demo/session.py` | Readable demo: a real MCP client session through the gateway, then two tenants on one core. |
 
@@ -212,9 +214,35 @@ Train split after tuning: 72/203 withheld (35.5%), 97/203 flagged, 0/343 benign 
 
 Benign technical text: all 6,054 docstring paragraphs (40+ chars) in the Python 3.13 standard library, which are full of words like "ignore", "send" and "forget": 0 withheld, 1 wrapped, before and after tuning. Scan cost is about 0.1 ms per text.
 
+### Second layer: normalisation and a small classifier
+
+The rules above miss about 3 in 4 held-out injections, so there is now a second, offline layer (`scanners/normalize.py`, `scanners/classifier.py`). Text is first folded (look-alike Cyrillic/Greek letters, full-width forms, zero-width characters, spaced-out letters), and base64, hex and percent-encoded payloads are decoded and appended. A linear classifier over word 1-2 grams and character 3-5 grams then scores it, in pure Python (no extra dependency at run time, no network, no API call). A high score withholds the result, a medium score wraps it in untrusted-data markers.
+
+Method, so the number can be trusted: the split is the dataset's own train/test split, hashed in `evals/data/SPLIT.json` and frozen by a test. The classifier, its regularisation (5-fold cross validation) and both thresholds were chosen on the **train split only** (`python -m evals.train_classifier`; scikit-learn is needed only to retrain). Extra benign training text: my own benign sentences (`evals/data/dev_benign.txt`) and Python stdlib docstrings from half of the modules (by file name hash). The other half of the stdlib modules is only ever scored. Weights are in `scanners/clf_model.json` (254 KB, trained by me, no third party model or licence). The test split was scored once, after the classifier was fixed (`python -m evals.compare_layers`, report in [`results/injection-layers.md`](results/injection-layers.md)).
+
+| Frozen test split (Wilson 95% intervals) | Rules only | Rules + classifier |
+|---|---|---|
+| Injections withheld | 14/60 = 23.3% (14.4 to 35.4) | 27/60 = 45.0% (33.1 to 57.5) |
+| Injections withheld or wrapped | 17/60 = 28.3% (18.5 to 40.8) | 46/60 = 76.7% (64.6 to 85.6) |
+| Benign chat rows withheld | 0/56 (0.0 to 6.4%) | 0/56 (0.0 to 6.4%) |
+| Benign chat rows wrapped | 0/56 | 1/56 = 1.8% (0.3 to 9.4) |
+| Unseen stdlib docs withheld | 0/2808 (0.0 to 0.1%) | 0/2808 (0.0 to 0.1%) |
+| Unseen stdlib docs wrapped | 1/2808 | 6/2808 = 0.2% (0.1 to 0.5) |
+| Time per text | 0.1 to 0.3 ms | 0.3 to 0.4 ms |
+
+Withheld recall went up by 21.7 points (paired bootstrap 95% interval +11.7 to +31.7), with no injection that the rules caught being lost. The end-to-end added latency of the attack suite did not change measurably (p50 1.0 ms). Obfuscated forms of a plain injection that the rules pass (Cyrillic look-alikes, spaced letters, hex, percent encoding) are now withheld; see `tests/test_classifier.py`.
+
+What this does not say:
+
+- It still misses more than half of the held-out injections. 33 of 60 are not withheld, and 14 of 60 are not even wrapped. Many are role play or "now write an essay" prompts that look like ordinary requests.
+- The test split has 60 injections, so the interval is wide (33 to 58%). Treat 45% as "somewhere between a third and a half".
+- This is a chat-prompt dataset, not tool output. The benign stdlib check is the closest thing to real results here, and it is still not a customer's traffic.
+- The dataset has near-duplicate prompts (translations, shared templates), so train and test are probably closer than independent samples. Cross validation inside train was higher (62% at the withhold threshold) than the test result, which is the same effect.
+- My benign sentences used as training negatives are now memorised; they are a regression set, not evidence.
+
 What this says, plainly:
 
-- **The regex layer is weak on its own.** It misses about 3 in 4 held-out injections. Many rows in this dataset are role play or "now write an essay about X", which no list of phrases will catch.
+- **The regex layer is weak on its own.** It misses about 3 in 4 held-out injections (the table above is the rules alone; the second layer is next). Many rows in this dataset are role play or "now write an essay about X", which no list of phrases will catch.
 - **It is cheap and quiet.** No benign row was withheld, and the stdlib run shows it does not fire on normal technical text. That is the job it is for: catch the common, copy-pasted attacks at about zero cost.
 - **This is why the gateway does not rely on it.** The controls that stopped the 20 attacks above (tool allowlists, identity forcing, the ownership ledger, URL and path guards, the size cap, pins) do not depend on wording. The LLM judge is the next layer for wording; `python -m evals.injection_eval --judge` measures it the same way, but I have not run it with a key, so there is no judge number here.
 - Caveat: the dataset is direct user prompts, not tool results, so it is a proxy. One rule (`ignore all orders`) was tightened after the test run because my own unit test caught it firing on "the job can ignore all orders older than 30 days"; the test split numbers did not change.
@@ -222,13 +250,14 @@ What this says, plainly:
 
 ## CI
 
-`.github/workflows/ci.yml` runs on every push and pull request, on Python 3.11 and 3.13 (Ubuntu): the full pytest suite including the two stdio end-to-end tests, then the attack suite (it exits non-zero if any attack gets through or any benign call is blocked), then the held-out eval. A test also fails the build if the held-out test split gets a false block or drops below 14/60.
+`.github/workflows/ci.yml` runs on every push and pull request, on Python 3.11 and 3.13 (Ubuntu): the full pytest suite including the two stdio end-to-end tests, then the attack suite (it exits non-zero if any attack gets through or any benign call is blocked), then the held-out eval and the second layer comparison. Tests also fail the build if the held-out test split gets a false block, if rules only drop below 14/60 withheld, or if rules plus classifier drop below 25/60.
 
 The first CI run failed, and it was a real bug: about 1 in 500 random note ids (for example `note-960628600311`) matched the phone or Aadhaar shape, got redacted in the create result, and the tenant could then not read its own note. It never showed on my machine because the ids are random. Digits glued to a word are no longer treated as PII, and those ids are now a regression test.
 
 ## Limits
 
-- **Pattern rules can be evaded.** Measured: they withhold 23% of held-out injections from a public dataset (see Results). Paraphrase, another language, or splitting an instruction across two results will get past them. They raise the cost of the obvious attacks; they are not a classifier. The judge helps, and is itself attackable.
+- **Injection detection by wording is weak.** Measured on a public dataset I did not write: rules alone withhold 23% of held-out injections, rules plus the small classifier withhold 45% (33 to 58% interval, 60 rows) and wrap another 32%. More than half still get through unwithheld. Paraphrase, role play, other languages and instructions split over several results will evade it, and the classifier was trained on 203 injections, so it knows those phrasings and little else. It is a cheap filter (under 0.5 ms) that raises the cost of copy-pasted attacks; the controls that do not depend on wording are the defence. The judge helps, and is itself attackable.
+- **The classifier may be less accurate on tool output than on chat prompts.** It saw benign docs only as stdlib docstrings and my own sentences. Run it in observe mode on a customer's real results before enforcing.
 - **Defence in depth, not a sandbox.** The gateway cannot see what an upstream does with its own credentials, network or disk. Least-privilege upstreams are still required.
 - **Not audited.** Written in a few hours as a work sample. Do not put it in front of production data without a review.
 - **Auth is API keys only.** No OAuth, no key rotation, no per-key scopes. On stdio one gateway process serves one tenant (the key comes from `MTG_API_KEY`). The core is multi-tenant; a streamable HTTP front with a bearer header is the missing piece for one process serving many tenants.
