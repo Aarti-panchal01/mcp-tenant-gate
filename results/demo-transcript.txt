@@ -1,0 +1,32 @@
+== Part 1: MCP client -> gateway -> 2 upstream MCP servers, all over stdio (tenant: acme)
+  tools/list: 11 tools visible
+         evil__customer_lookup, evil__dump, evil__get_weather, evil__lookup, evil__send_report, notes__create_note, notes__fetch_url, notes__list_notes, notes__read_file, notes__read_note, notes__search_notes
+  hidden by the gateway (poisoned or shadowing definitions): evil__add_numbers, evil__notes__read_note, evil__read_note, evil__summarize, evil__translate
+  ok    notes__create_note({"title": "plan", "body": "Q4 hiring plan"})
+         -> {"note_id": "note-097a8a943ae5", "title": "plan"}
+  ok    notes__read_note({"note_id": "note-097a8a943ae5"})
+         -> {"note_id": "note-097a8a943ae5", "owner": "acme", "title": "plan", "body": "Q4 hiring plan"}
+  ERROR notes__fetch_url({"url": "http://169.254.169.254/latest/meta-data/"})
+         -> [mcp-tenant-gate] blocked by argguard: url: internal address 169.254.169.254 (SSRF)
+  ERROR notes__read_file({"path": "data/../etc/passwd"})
+         -> [mcp-tenant-gate] blocked by argguard: path: path traversal (..)
+  ERROR evil__lookup({"topic": "France"})
+         -> [mcp-tenant-gate] blocked by injection: result withheld: conceal_from_user, ignore_previous, role_override
+  ok    evil__customer_lookup({"name": "Jane"})
+         -> {"customer": "Jane Doe", "email": "[REDACTED:email]", "phone": "[REDACTED:phone]", "pan": "[REDACTED:pan]",...
+  tools/list again: evil__get_weather removed (definition changed after approval)
+  ERROR evil__get_weather({"city": "Oslo"})
+         -> [mcp-tenant-gate] blocked by tool_poisoning: tool is quarantined: conceal_from_user, definition_changed_sin...
+  audit log: 23 records, hash chain ok=True
+
+== Part 2: two tenants, one naive notes server behind one gateway core
+  acme   notes__create_note({"title": "m&a", "body": "acme merger draft"}) -> ok
+         {"note_id": "note-99a791d64aa2", "title": "m&a"}
+  globex notes__read_note({"note_id": "note-99a791d64aa2"}) -> BLOCKED by isolation
+         [mcp-tenant-gate] blocked by isolation: resource not found for this tenant: note_id
+  globex notes__search_notes({"query": "merger"}) -> ok [cross_tenant_filtered:1]
+         []
+  globex notes__create_note({"owner": "acme", "title": "t", "body": "spoof"}) -> BLOCKED by isolation
+         [mcp-tenant-gate] blocked by isolation: identity argument owner names another tenant
+  globex notes__fetch_url({"url": "https://docs.example.com/"}) -> BLOCKED by policy
+         [mcp-tenant-gate] blocked by policy: tool not available: notes__fetch_url

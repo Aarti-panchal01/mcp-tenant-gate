@@ -14,7 +14,7 @@ dependencies = [
 dev = ["pytest>=8.0"]
 
 [tool.setuptools]
-packages = ["mcp_tenant_gate", "mcp_tenant_gate.scanners", "upstreams", "attacks"]
+packages = ["mcp_tenant_gate", "mcp_tenant_gate.scanners", "upstreams", "attacks", "evals", "demo"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
