@@ -50,6 +50,41 @@ IMPERATIVE_RULES: list[tuple[str, str, re.Pattern[str]]] = [
     ("ignore_previous", "high", re.compile(
         r"\b(ignore|disregard|forget|override)\b[^.\n]{0,40}\b(previous|prior|above|earlier|all|system|original)\b"
         r"[^.\n]{0,20}\b(instructions?|prompts?|rules|messages?|guidelines|context)\b")),
+    # Rules below were added after a held-out eval (evals/injection_eval.py), tuned on the
+    # train split of deepset/prompt-injections only. The test split was not read.
+    ("discard_prior_work", "high", re.compile(
+        r"\b(ignore|disregard|forget)\b[^.\n]{0,40}"
+        r"\b(previous|prior|above|earlier|preceding)\b[^.\n]{0,20}"
+        r"\b(tasks?|assignments?|orders?|information|commands?|directions?)\b"
+        # "all" alone is too common ("the job can ignore all orders older than 30 days")
+        r"|\bforget\b (about )?all (the |your )?(tasks|assignments)\b"
+        # "leave the information blank" is a form hint, so these verbs need "previous"
+        r"|\b(leave|remove|abandon)\b[^.\n]{0,20}\b(previous|prior|preceding)\b[^.\n]{0,20}"
+        r"\b(tasks?|information|instructions?)\b"
+        r"|\b(forget|ignore|disregard)\b (about )?everything\b[^.\n]{0,25}"
+        r"\b(before|above|said|discussed|beforehand|so far|you know)\b"
+        r"|\b(ignore|disregard|forget)\b (the )?above\b")),
+    ("discard_prior_work_non_english", "high", re.compile(
+        # German, French, Spanish and Croatian: the other languages in the eval data
+        r"\b(vergiss|vergessen sie|ignoriere|ignorieren sie)\b[^.\n]{0,30}\b(alles|alle|vorherigen|bisherigen"
+        r"|anweisungen|aufgaben|instruktionen|befehle)\b"
+        r"|\babweichend zu (den )?vorherigen\b"
+        r"|\b(alle )?(bisherigen|vorherigen) informationen\b"
+        r"|\b(oubliez|oublie|olvida|olvidar|zaboravi)\b[^.\n]{0,20}\b(toutes|tout|todo|todas|sve)\b")),
+    ("forget_everything", "medium", re.compile(r"\b(forget|ignore) (about )?everything\b")),
+    ("new_task_switch", "high", re.compile(
+        r"\b(focus|concentrate) on (your|the|a) new task\b|\bnew (tasks?|instructions?) (follows?|are coming)\b"
+        r"|\bstart (over|again|from the front)\b[^.\n]{0,10}\bnew task\b|\bwe start with a new task\b"
+        r"|\b(konzentriere dich|konzentrieren sie sich)\b[^.\n]{0,30}\bneue aufgabe\b")),
+    ("prompt_leak", "high", re.compile(
+        r"\b(show|print|reveal|output|repeat|display|tell me|zeige|zeig)\b[^.\n]{0,25}"
+        r"(\byour (\w+ )?(prompt|instructions)\b|\b(full|system|initial|original) prompt\b|\bprompt ?texts?\b"
+        r"|\bdeine (\w+ )?(prompts?|anweisungen)\b)")),
+    ("role_play_setup", "medium", re.compile(
+        r"\b(i want you to act as|pretend (you are|to be|you can)|now you are|imagine you are"
+        r"|you are role-?playing|stay (fully )?in (their|your) roles?|do not break character"
+        r"|from now on,? you are|du bist (jetzt|nun))\b")),
+    ("stop_then_command", "high", re.compile(r"\bstop\s*[-:,!]+\s*(write|ignore|now|say|print)\b")),
     ("hidden_instruction_tag", "high", re.compile(
         r"<\s*/?\s*(important|system|instructions?|secret|admin|hidden|sudo)\s*>")),
     ("conceal_from_user", "high", re.compile(
