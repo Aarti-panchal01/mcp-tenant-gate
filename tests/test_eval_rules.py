@@ -47,3 +47,18 @@ def test_eval_held_out_numbers_do_not_regress():
     assert len(test) == 116
     assert m["false_positives"] == 0
     assert m["caught"] >= 14  # 3 before the rules were tuned on the train split
+
+
+def test_split_is_frozen():
+    """The recorded hashes of the train and test rows must not change (see evals/data/SPLIT.json)."""
+    import hashlib
+    import json
+    rows = injection_eval.load()
+    rec = json.loads((injection_eval.ROOT / "evals" / "data" / "SPLIT.json").read_text(encoding="utf-8"))
+    for name in ("train", "test"):
+        part = [r for r in rows if r["split"] == name]
+        m = hashlib.sha256()
+        for r in part:
+            m.update(f"{r['split']}|{r['row']}|{r['label']}|{r['text']}\n".encode())
+        assert len(part) == rec[name]["rows"]
+        assert m.hexdigest() == rec[name]["sha256"]

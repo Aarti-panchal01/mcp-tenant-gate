@@ -1,0 +1,13 @@
+{
+  "source": "deepset/prompt-injections revision 4f61ecb, splits as published by the dataset",
+  "rule": "The test split is frozen. No detector, threshold or feature may be chosen by reading test rows or test scores. Dev work (training, cross validation, threshold choice) uses the train split only. The test split is scored once per detector change, after the detector is fixed.",
+  "recorded": "2026-10-23 before the second layer was added",
+  "train": {
+    "rows": 546,
+    "sha256": "d7aeb9ab7cbf43172a45d7978544411c31225e811525da14c28e1a0d3d04c139"
+  },
+  "test": {
+    "rows": 116,
+    "sha256": "e907d88a3fdd77a8e6797384775404ec90657127ba3196b1ba123e7f991eae4e"
+  }
+}
