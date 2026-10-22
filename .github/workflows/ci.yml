@@ -1,0 +1,27 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Unit, property and stdio end-to-end tests
+        run: python -m pytest -q
+      - name: Attack suite (fails the build if any attack gets through or a benign call is blocked)
+        run: python -m attacks.suite
+      - name: Held-out injection eval
+        run: python -m evals.injection_eval
