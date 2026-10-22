@@ -1,0 +1,43 @@
+{
+  "source": "https://huggingface.co/datasets/deepset/prompt-injections (revision 4f61ecb)",
+  "test_injections": 60,
+  "test_benign": 56,
+  "stdlib_eval_paragraphs": 2808,
+  "model": {
+    "kind": "logreg-binary-ngrams",
+    "trained_on": "deepset/prompt-injections train split (546 rows) + dev benign texts",
+    "C": 30,
+    "seed": 7,
+    "bias": -5.195,
+    "t_high": 0.9406,
+    "t_low": 0.6633
+  },
+  "configs": {
+    "rules only": {
+      "withheld": 14,
+      "flagged": 17,
+      "benign_chat_withheld": 0,
+      "benign_chat_flagged": 0,
+      "stdlib_withheld": 0,
+      "stdlib_flagged": 1,
+      "ms_per_text_injection_rows": 0.174,
+      "ms_per_text_stdlib_paragraphs": 0.119
+    },
+    "rules + classifier": {
+      "withheld": 27,
+      "flagged": 46,
+      "benign_chat_withheld": 0,
+      "benign_chat_flagged": 1,
+      "stdlib_withheld": 0,
+      "stdlib_flagged": 6,
+      "ms_per_text_injection_rows": 0.378,
+      "ms_per_text_stdlib_paragraphs": 0.282
+    }
+  },
+  "recall_gain_withheld_ci": [
+    0.1167,
+    0.3167
+  ],
+  "newly_withheld": 13,
+  "no_longer_withheld": 0
+}

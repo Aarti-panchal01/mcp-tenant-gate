@@ -14,7 +14,7 @@ Data: https://huggingface.co/datasets/deepset/prompt-injections (revision 4f61ec
 
 Benign technical text: 6054 docstring paragraphs from the Python 3.13.2 standard library: 0 blocked, 1 wrapped.
 
-Scan time: 0.104 ms per row.
+Scan time: 0.137 ms per row.
 
 Rules that fired on injections: `discard_prior_work_non_english` 36, `discard_prior_work` 33, `forget_everything` 25, `role_play_setup` 22, `ignore_previous` 12, `new_task_switch` 11, `prompt_leak` 9, `stop_then_command` 5, `invisible_unicode` 1
 

@@ -25,3 +25,5 @@ jobs:
         run: python -m attacks.suite
       - name: Held-out injection eval
         run: python -m evals.injection_eval
+      - name: Second layer, before and after on the frozen test split
+        run: python -m evals.compare_layers
