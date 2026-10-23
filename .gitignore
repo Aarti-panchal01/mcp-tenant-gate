@@ -4,3 +4,6 @@ __pycache__/
 .pytest_cache/
 *.egg-info/
 runtime/
+site/.shots/
+site/.vercel/
+.gstack/

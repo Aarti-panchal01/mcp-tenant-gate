@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mcp-tenant-gate · multi-tenant security gateway for MCP</title>
+<meta name="description" content="A multi-tenant security gateway for MCP servers, with a live playground that runs the real gateway code. 20/20 scripted attacks blocked, honest held-out injection numbers.">
+<meta name="author" content="Aarti Panchal">
+<meta name="theme-color" content="#0E1013" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F5F5F2" media="(prefers-color-scheme: light)">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mcp-tenant-gate.vercel.app/">
+<meta property="og:title" content="mcp-tenant-gate · multi-tenant security gateway for MCP">
+<meta property="og:description" content="Each API key sees only its own tools and data. Every tool definition and result is checked before the model reads it. Try the live playground.">
+<meta property="og:image" content="https://mcp-tenant-gate.vercel.app/assets/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="mcp-tenant-gate: a dark console showing ALLOW, REDACT and BLOCK verdicts">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="mcp-tenant-gate · multi-tenant security gateway for MCP">
+<meta name="twitter:description" content="A security gateway between AI agents and MCP servers, with a live playground running the real gateway code.">
+<meta name="twitter:image" content="https://mcp-tenant-gate.vercel.app/assets/og.png">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<script src="assets/theme.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/site.css">
+<script type="module" src="assets/app.js"></script>
+<script type="module" src="assets/report.js"></script>
+</head>
+<body>
+<a class="skip" href="#playground">Skip to the playground</a>
+
+<header class="bar" role="banner">
+  <div class="bar-in">
+    <a class="brand" href="#top" aria-label="mcp-tenant-gate, back to top">
+      <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 3.5v17M20 3.5v17M4 3.5h3.5M4 20.5h3.5M20 3.5h-3.5M20 20.5h-3.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"/><path d="M9 12h6" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="square"/><path d="M12 8.5v7" stroke="currentColor" stroke-width="2" stroke-linecap="square"/></svg>
+      <span>mcp-tenant-gate</span>
+    </a>
+    <nav class="nav" aria-label="Sections">
+      <a href="#playground">Playground</a>
+      <a href="#attacks">Attacks</a>
+      <a href="#eval">Eval</a>
+      <a href="#architecture">Architecture</a>
+    </nav>
+    <div class="bar-right">
+      <span class="api-status" id="api-status" data-state="checking" title="Checking the playground API"><span class="dot" aria-hidden="true"></span><span class="api-label">api · checking</span></span>
+      <a class="icon-link" href="https://github.com/Aarti-panchal01/mcp-tenant-gate" rel="noopener" aria-label="Source on GitHub">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span class="icon-link-label">GitHub</span>
+      </a>
+      <details class="menu" id="menu">
+        <summary aria-label="Sections menu">Menu</summary>
+        <nav aria-label="Sections, compact">
+          <a href="#playground">Playground</a>
+          <a href="#walkthrough">Walkthrough</a>
+          <a href="#attacks">Attacks</a>
+          <a href="#eval">Eval</a>
+          <a href="#architecture">Architecture</a>
+          <a href="#limits">Limits</a>
+          <a href="https://github.com/Aarti-panchal01/mcp-tenant-gate" rel="noopener">Source on GitHub</a>
+        </nav>
+      </details>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to light theme">
+        <svg class="i-sun" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6L13 13M3 13l1.4-1.4M11.6 4.4L13 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <svg class="i-moon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 9.6A5.6 5.6 0 016.4 2.5a5.6 5.6 0 107.1 7.1z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <section class="intro" aria-labelledby="intro-title">
+    <div class="intro-text">
+      <p class="eyebrow">Security gateway · Model Context Protocol</p>
+      <h1 id="intro-title">A multi-tenant security gateway for MCP servers.</h1>
+      <p class="problem">Tool lists are text the model trusts, and a server can poison them or swap them after you approved them. Tool results are untrusted text that can carry instructions like "ignore all previous instructions". Most MCP servers are single tenant, so two customers behind one server can read each other's data.</p>
+      <p class="problem-fix">mcp-tenant-gate fixes all three in one place, in front of servers that stay naive. One API key is one tenant.</p>
+      <ul class="facts" aria-label="Key results">
+        <li><b>20/20</b> attacks blocked</li>
+        <li><b>20/20</b> benign calls passed</li>
+        <li><b>~1 ms</b> added, p50</li>
+        <li><b>45%</b><span>of unseen injections withheld <span class="dim">(rules alone: 23%)</span></span></li>
+        <li><b>158</b> tests</li>
+      </ul>
+      <div class="intro-cta">
+        <a class="btn btn-primary" href="#scenarios">Try an attack live</a>
+        <a class="btn" href="#walkthrough">Cross-tenant walkthrough</a>
+      </div>
+    </div>
+
+    <figure class="arch" id="architecture" aria-labelledby="arch-cap">
+      <figcaption id="arch-cap"><span class="label">Fig. 1</span> Request and result path. Cheap, certain checks first. Every stage writes to the audit chain. <span class="arch-live" id="arch-live" aria-live="polite"></span></figcaption>
+      <div class="arch-scroll">
+        <svg class="arch-svg" viewBox="0 0 1000 380" role="img" aria-labelledby="arch-title arch-desc">
+          <title id="arch-title">mcp-tenant-gate architecture</title>
+          <desc id="arch-desc">An agent with an API key calls the gateway. The request passes auth, rate limit, policy, argument guard, isolation and schema checks before reaching one of two upstream MCP servers: notes, a benign single tenant server, and evil, a server with poisoned tools, injections and PII. The result comes back through a size cap, a non-text drop, a cross-tenant filter, PII redaction, an injection scan and an optional LLM judge. Tool listings are scanned for poisoning and pinned with SHA-256. Every stage writes to a hash-chained audit log.</desc>
+          <defs><marker id="ah" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L8 4L0 8z" class="ah"/></marker></defs>
+          <g class="node" data-stage="client"><rect x="8" y="96" width="128" height="148" rx="3"/><text class="t-h" x="22" y="122">agent / client</text><text class="t-s" x="22" y="142">API key = tenant</text><text class="t-m" x="22" y="182">acme</text><text class="t-m" x="22" y="202">globex</text><text class="t-m t-dim" x="22" y="222">unknown key</text></g>
+          <rect class="frame" x="156" y="20" width="648" height="350" rx="4"/><text class="t-frame" x="172" y="42">mcp-tenant-gate</text>
+          <text class="t-lane" x="172" y="62">REQUEST PATH</text>
+          <g class="stages"><g class="stage" data-stage="auth"><rect x="172" y="70" width="96" height="52" rx="2"/><text x="182" y="92">auth</text><text class="t-s" x="182" y="110">key hash</text><rect class="tick tb" x="252" y="66" width="8" height="8" rx="1"/></g><g class="stage" data-stage="ratelimit"><rect x="276" y="70" width="96" height="52" rx="2"/><text x="286" y="92">rate limit</text><text class="t-s" x="286" y="110">per tenant</text><rect class="tick tb" x="356" y="66" width="8" height="8" rx="1"/></g><g class="stage" data-stage="policy"><rect x="380" y="70" width="96" height="52" rx="2"/><text x="390" y="92">policy</text><text class="t-s" x="390" y="110">allowed, pinned</text><rect class="tick tb" x="460" y="66" width="8" height="8" rx="1"/></g><g class="stage" data-stage="argguard"><rect x="484" y="70" width="96" height="52" rx="2"/><text x="494" y="92">arg guard</text><text class="t-s" x="494" y="110">SSRF, paths</text><rect class="tick tb" x="564" y="66" width="8" height="8" rx="1"/></g><g class="stage" data-stage="isolation"><rect x="588" y="70" width="96" height="52" rx="2"/><text x="598" y="92">isolation</text><text class="t-s" x="598" y="110">identity, ids</text><rect class="tick tb" x="668" y="66" width="8" height="8" rx="1"/></g><g class="stage" data-stage="schema"><rect x="692" y="70" width="96" height="52" rx="2"/><text x="702" y="92">schema</text><text class="t-s" x="702" y="110">tenant + pin</text><rect class="tick tb" x="772" y="66" width="8" height="8" rx="1"/></g></g>
+          <path class="flow" d="M268 96 H276 M372 96 H380 M476 96 H484 M580 96 H588 M684 96 H692"/>
+          <text class="t-lane" x="172" y="158">RESULT PATH</text>
+          <g class="stages"><g class="stage" data-stage="judge"><rect x="172" y="166" width="96" height="52" rx="2"/><text x="182" y="188">LLM judge</text><text class="t-s" x="182" y="206">optional, off</text><rect class="tick tb" x="252" y="162" width="8" height="8" rx="1"/></g><g class="stage" data-stage="injection"><rect x="276" y="166" width="96" height="52" rx="2"/><text x="286" y="188">injection</text><text class="t-s" x="286" y="206">withhold or wrap</text><circle class="tick ta" cx="360" cy="166" r="4"/><rect class="tick tb" x="342" y="162" width="8" height="8" rx="1"/></g><g class="stage" data-stage="pii"><rect x="380" y="166" width="96" height="52" rx="2"/><text x="390" y="188">PII</text><text class="t-s" x="390" y="206">redact or block</text><circle class="tick ta" cx="464" cy="166" r="4"/><rect class="tick tb" x="446" y="162" width="8" height="8" rx="1"/></g><g class="stage" data-stage="xtenant"><rect x="484" y="166" width="96" height="52" rx="2"/><text x="494" y="188">cross-tenant</text><text class="t-s" x="494" y="206">foreign rows</text><circle class="tick ta" cx="568" cy="166" r="4"/></g><g class="stage" data-stage="non_text"><rect x="588" y="166" width="96" height="52" rx="2"/><text x="598" y="188">non-text</text><text class="t-s" x="598" y="206">dropped</text><circle class="tick ta" cx="672" cy="166" r="4"/></g><g class="stage" data-stage="size_cap"><rect x="692" y="166" width="96" height="52" rx="2"/><text x="702" y="188">size cap</text><text class="t-s" x="702" y="206">64 KB</text><rect class="tick tb" x="772" y="162" width="8" height="8" rx="1"/></g></g>
+          <path class="flow" d="M276 192 H270 M380 192 H374 M484 192 H478 M588 192 H582 M692 192 H686"/>
+          <path class="flow" d="M136 122 H148 V96 H170" marker-end="url(#ah)"/>
+          <path class="flow" d="M172 192 H138" marker-end="url(#ah)"/>
+          <g class="node" data-stage="catalog"><rect x="172" y="256" width="304" height="96" rx="2"/><text class="t-h" x="186" y="280">catalog build, every tools/list</text><text class="t-s" x="186" y="302">scans every definition for hidden instructions</text><text class="t-s" x="186" y="320">pins a SHA-256 per tool; a changed one</text><text class="t-s" x="186" y="338">is quarantined (rug pull)</text><rect class="tick tb" x="456" y="252" width="8" height="8" rx="1"/></g>
+          <g class="node" data-stage="audit"><rect x="492" y="256" width="296" height="96" rx="2"/><text class="t-h" x="506" y="280">audit log</text><text class="t-s" x="506" y="302">append-only, SHA-256 hash chain</text><text class="t-s" x="506" y="320">digests of args and results, not the data</text><text class="t-m t-chain" x="506" y="340">prev → hash → prev → hash</text></g>
+          <path class="flow flow-dot" d="M588 218 V256 M692 218 V256 M740 122 V140 H780 V256"/>
+          <text class="t-lane" x="836" y="44">UPSTREAM MCP SERVERS</text>
+          <path class="flow" d="M788 96 H812 V84 H834" marker-end="url(#ah)"/><path class="flow" d="M812 96 V190 H834" marker-end="url(#ah)"/>
+          <path class="flow" d="M836 136 H822 V192 H790" marker-end="url(#ah)"/><path class="flow" d="M836 240 H822 V192"/>
+          <path class="flow flow-dash" d="M914 262 V304 H476" marker-end="url(#ah)"/><text class="t-s" x="922" y="300">tools/list</text>
+          <g class="node up" data-stage="up-notes"><rect x="836" y="58" width="156" height="92" rx="3"/><text class="t-h" x="850" y="82">notes</text><text class="t-s" x="850" y="102">benign, single tenant</text><text class="t-s" x="850" y="120">trusts any owner,</text><text class="t-s" x="850" y="138">searches everyone</text></g>
+          <g class="node up up-evil" data-stage="up-evil"><rect x="836" y="166" width="156" height="96" rx="3"/><text class="t-h" x="850" y="190">evil</text><text class="t-s" x="850" y="210">poisoned tools,</text><text class="t-s" x="850" y="228">rug pull, injection,</text><text class="t-s" x="850" y="246">PII, a 5 MB dump</text></g>
+          </svg>
+      </div>
+      <p class="arch-hint">Scroll the figure sideways to see the upstream servers.</p>
+      <ul class="legend" aria-label="Legend">
+        <li><span class="ldot tb"></span>can block</li>
+        <li><span class="ldot ta"></span>can change and deliver</li>
+        <li><span class="lsw lit"></span>lit by the last playground verdict</li>
+      </ul>
+    </figure>
+  </section>
+
+  <!-- ============================== PLAYGROUND -->
+  <section class="pg" id="playground" aria-labelledby="pg-title">
+    <div class="sec-head">
+      <div>
+        <p class="label">01 · Live</p>
+        <h2 id="pg-title">Playground</h2>
+      </div>
+      <p class="sec-sub">Every verdict here comes from the real gateway code, running in a Python serverless function. The upstream servers are in-process fakes: nothing is fetched and nothing is read from disk.</p>
+    </div>
+
+    <div class="console">
+      <!-- left rail -->
+      <aside class="rail rail-left" aria-label="Tenant and tools">
+        <div class="panel">
+          <div class="panel-h"><h3>Tenant</h3><span class="ph-note">API key</span></div>
+          <div class="seg" role="radiogroup" aria-label="Tenant" id="tenant-seg">
+            <button type="button" role="radio" data-tenant="acme" aria-checked="true">acme</button>
+            <button type="button" role="radio" data-tenant="globex" aria-checked="false">globex</button>
+            <button type="button" role="radio" data-tenant="unknown" aria-checked="false">unknown key</button>
+          </div>
+          <details class="policy-fold" open id="policy-fold">
+            <summary><span class="label">Policy</span><span class="hint">from tenants.yaml</span></summary>
+            <dl class="kv" id="policy-kv" aria-live="polite">
+              <div class="sk sk-row"></div><div class="sk sk-row"></div><div class="sk sk-row"></div><div class="sk sk-row"></div>
+            </dl>
+          </details>
+        </div>
+
+        <details class="panel fold" open id="visible-fold">
+          <summary class="panel-h"><h3>Tools visible to <span class="mono" id="vis-tenant">acme</span></h3><span class="ph-note mono" id="vis-count"></span></summary>
+          <div id="visible-tools" class="toollist">
+            <div class="sk sk-row"></div><div class="sk sk-row"></div><div class="sk sk-row"></div><div class="sk sk-row"></div><div class="sk sk-row"></div>
+          </div>
+        </details>
+
+        <details class="panel fold" open id="hidden-fold">
+          <summary class="panel-h"><h3>Hidden by the gateway</h3><span class="ph-note mono" id="hidden-count"></span></summary>
+          <div id="hidden-tools" class="toollist">
+            <div class="sk sk-row"></div><div class="sk sk-row"></div><div class="sk sk-row"></div>
+          </div>
+        </details>
+        <div class="panel rug">
+          <button type="button" class="btn btn-sm" id="list-again">List tools again</button>
+          <p class="hint" id="rug-hint">List again to see a rug pull.</p>
+        </div>
+      </aside>
+
+      <!-- center -->
+      <div class="center">
+        <div class="panel panel-main">
+          <div class="tabs" role="tablist" aria-label="Playground mode">
+            <button type="button" role="tab" id="tab-call" aria-selected="true" aria-controls="pane-call">Call a tool</button>
+            <button type="button" role="tab" id="tab-paste" aria-selected="false" aria-controls="pane-paste" tabindex="-1">Inspect a pasted result</button>
+          </div>
+
+          <div class="pane" id="pane-call" role="tabpanel" aria-labelledby="tab-call">
+            <div class="presets-h" id="scenarios"><span class="label">Scenarios</span><span class="hint">One click sets tenant, tool and arguments, then runs.</span></div>
+            <div class="presets" id="presets"></div>
+
+            <form class="composer" id="composer" novalidate>
+              <div class="field">
+                <label for="tool-name" class="flabel">Tool</label>
+                <input id="tool-name" class="input mono" list="tool-names" autocomplete="off" spellcheck="false" value="notes__read_file">
+                <datalist id="tool-names"></datalist>
+              </div>
+              <p class="tool-desc" id="tool-desc"></p>
+              <p class="tool-note" id="tool-note"></p>
+              <div class="field">
+                <label for="args" class="flabel">Arguments <span class="dim">JSON</span></label>
+                <textarea id="args" class="input mono" rows="4" spellcheck="false">{"path": "data/handbook.txt"}</textarea>
+                <p class="field-err" id="args-err" role="alert"></p>
+              </div>
+              <div class="composer-foot">
+                <button type="submit" class="btn btn-primary" id="run-btn">Run call</button>
+                <span class="hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd></span>
+                <span class="as-tenant hint">as <b class="mono" id="as-tenant">acme</b></span>
+              </div>
+            </form>
+          </div>
+
+          <div class="pane" id="pane-paste" role="tabpanel" aria-labelledby="tab-paste" hidden>
+            <p class="hint pane-intro">Paste any text as if a tool returned it. It travels the real result path for the selected tenant: size cap, cross-tenant filter, PII, injection scan.</p>
+            <div class="presets" id="paste-examples"></div>
+            <form id="paste-form" novalidate>
+              <label for="paste-text" class="flabel">Tool result text</label>
+              <textarea id="paste-text" class="input mono" rows="6" maxlength="6000" spellcheck="false" placeholder="Paste any text as if a tool returned it"></textarea>
+              <div class="composer-foot">
+                <button type="submit" class="btn btn-primary" id="scan-btn">Scan as tool result</button>
+                <span class="hint"><kbd>Ctrl</kbd> + <kbd>Enter</kbd></span>
+                <span class="as-tenant hint" id="paste-mode"></span>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="panel result" id="result" aria-labelledby="result-h">
+          <div class="panel-h"><h3 id="result-h">Gateway verdict</h3><span class="ph-note mono" id="result-ms"></span></div>
+          <div id="result-body" aria-live="polite" aria-busy="true">
+            <div class="sk sk-line w60"></div><div class="sk sk-block"></div>
+          </div>
+        </div>
+
+        <div class="panel walk" id="walkthrough" aria-labelledby="walk-h">
+          <div class="panel-h">
+            <h3 id="walk-h">Cross-tenant walkthrough</h3>
+            <button type="button" class="btn btn-sm btn-primary" id="walk-run">Run all 4 steps</button>
+          </div>
+          <p class="hint walk-intro">One naive notes server, two tenants. The upstream stores everyone's notes and searches all of them. The gateway's ownership ledger decides who sees what.</p>
+          <ol class="steps" id="walk-steps"></ol>
+        </div>
+      </div>
+
+      <!-- right rail -->
+      <aside class="rail rail-right" aria-label="Session state and audit log">
+        <details class="panel fold" open id="state-fold">
+          <summary class="panel-h"><h3>Session state</h3><span class="ph-note">all tenants</span></summary>
+          <div class="state-grid">
+            <div>
+              <p class="mini-h">Upstream holds <span class="dim">what the naive server stores</span></p>
+              <table class="tbl tbl-tight"><thead><tr><th scope="col">note_id</th><th scope="col">owner</th><th scope="col">title</th></tr></thead><tbody id="up-notes"><tr><td colspan="3" class="empty">No notes yet.</td></tr></tbody></table>
+            </div>
+            <div>
+              <p class="mini-h">Ownership ledger <span class="dim">what the gateway enforces</span></p>
+              <table class="tbl tbl-tight"><thead><tr><th scope="col">note_id</th><th scope="col">tenant</th></tr></thead><tbody id="ledger"><tr><td colspan="2" class="empty">Empty.</td></tr></tbody></table>
+            </div>
+          </div>
+        </details>
+
+        <details class="panel fold" open id="audit-fold">
+          <summary class="panel-h"><h3>Audit log</h3><span class="ph-note mono" id="audit-meta"></span></summary>
+          <p class="head-hash mono" id="audit-head"></p>
+          <ol class="audit" id="audit" aria-live="off"><li class="sk sk-row"></li><li class="sk sk-row"></li><li class="sk sk-row"></li></ol>
+        </details>
+
+        <div class="panel session">
+          <div class="panel-h"><h3>Session</h3><span class="ph-note mono" id="session-seed"></span></div>
+          <p class="hint" id="session-info">Starting.</p>
+          <p class="hint" id="session-explain">The API keeps no state. Your browser holds the session seed and the ops you ran, and the server replays them through a fresh gateway on every request. Note ids are seeded so the replay is exact.</p>
+          <button type="button" class="btn btn-sm" id="reset-btn">Reset session</button>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============================== ATTACKS -->
+  <section class="sec" id="attacks" aria-labelledby="atk-title">
+    <div class="sec-head">
+      <div>
+        <p class="label">02 · Scripted</p>
+        <h2 id="atk-title">Attack suite</h2>
+      </div>
+      <p class="sec-sub">20 attacks against a deliberately malicious MCP server, plus 20 normal calls. I wrote these, so they show the checks work. They do not show the gate is hard to beat.</p>
+    </div>
+
+    <div class="panel">
+      <div class="suite-top">
+        <div>
+          <p class="suite-summary mono" id="suite-summary"><span class="sk sk-line w80"></span></p>
+          <p class="hint" id="suite-label">Loading the recorded run.</p>
+        </div>
+        <div class="suite-actions">
+          <button type="button" class="btn btn-primary" id="suite-run">Run the suite live</button>
+          <p class="hint" id="suite-msg" role="status"></p>
+        </div>
+      </div>
+      <div class="filters" id="suite-filters" role="group" aria-label="Filter by category"></div>
+      <div class="tbl-wrap">
+        <table class="tbl tbl-suite">
+          <thead><tr><th scope="col" class="num">#</th><th scope="col">Attack</th><th scope="col">Category</th><th scope="col">Result</th><th scope="col">Caught by</th><th scope="col">Logged</th><th scope="col" class="col-detail">Detail</th></tr></thead>
+          <tbody id="suite-rows"></tbody>
+        </table>
+      </div>
+      <p class="hint foot-note">The repo's README reports the same 20/20 with every upstream as a real MCP server over stdio. This site runs the upstreams in-process, because a serverless function cannot start subprocesses. The audit tamper attack is the log itself, so 19 of 20 are loggable.</p>
+    </div>
+
+    <div class="panel hb">
+      <div class="panel-h"><h3>Harder benign text</h3><span class="ph-note mono" id="hb-count"></span></div>
+      <p class="hint">Ordinary sentences that share words with attacks, stored in a note and read back. Wrap means the text was delivered inside untrusted-data markers, not withheld. Honest caveat: these 8 were written after a first run showed 3 of them being withheld, and the rules were tightened. They are a regression set, not an unseen test.</p>
+      <table class="tbl"><thead><tr><th scope="col">Text</th><th scope="col">Outcome</th></tr></thead><tbody id="hb-rows"></tbody></table>
+    </div>
+  </section>
+
+  <!-- ============================== EVAL -->
+  <section class="sec" id="eval" aria-labelledby="eval-title">
+    <div class="sec-head">
+      <div>
+        <p class="label">03 · Recorded</p>
+        <h2 id="eval-title">Held-out eval</h2>
+      </div>
+      <p class="sec-sub">Recorded: deepset/prompt-injections test split, 60 injections and 56 benign rows, scored once. Rules were tuned and the classifier trained on the train split only.</p>
+    </div>
+
+    <div class="eval-grid">
+      <div class="panel">
+        <div class="tbl-wrap">
+          <table class="tbl tbl-eval">
+            <thead><tr><th scope="col">Frozen test split <span class="dim">(Wilson 95%)</span></th><th scope="col">Rules only</th><th scope="col">Rules + classifier</th></tr></thead>
+            <tbody id="eval-rows"></tbody>
+          </table>
+        </div>
+        <p class="hint foot-note" id="eval-source"></p>
+      </div>
+      <div class="panel">
+        <div class="panel-h"><h3>60 held-out injections</h3><span class="ph-note">counts, not row order</span></div>
+        <div class="strips" id="eval-strips"></div>
+        <ul class="legend legend-inline">
+          <li><span class="cell c-block"></span>withheld</li>
+          <li><span class="cell c-warn"></span>wrapped, delivered as data</li>
+          <li><span class="cell c-miss"></span>passed with no flag</li>
+        </ul>
+        <p class="plain">The regex rules alone withhold about 1 in 4 unseen injections. With the small offline classifier, 45%, somewhere between a third and a half. More than half still get through unwithheld, and 14 of 60 are not even wrapped. That is why the gateway does not rely on wording: the controls that stopped all 20 attacks do not depend on it.</p>
+        <p class="shipped">The playground scanner uses rules + classifier, the shipped config.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================== ERROR ANALYSIS -->
+  <section class="sec" id="errors" aria-labelledby="err-title">
+    <div class="sec-head">
+      <div>
+        <p class="label">04 · Misses</p>
+        <h2 id="err-title">What the filter still misses</h2>
+      </div>
+      <p class="sec-sub" id="err-sub">The 33 held-out injections that were not withheld, grouped by hand by what the text asks for. The grouping is my judgement, so treat counts as approximate.</p>
+    </div>
+    <div class="panel">
+      <div class="tbl-wrap">
+        <table class="tbl tbl-err">
+          <thead><tr><th scope="col">Category</th><th scope="col" class="num">Misses</th><th scope="col" class="num">Wrapped / passed</th><th scope="col">What would actually help</th></tr></thead>
+          <tbody id="err-rows"></tbody>
+        </table>
+      </div>
+      <ul class="cuts" id="err-cuts"></ul>
+    </div>
+    <div class="claim">
+      <p class="label">Isolation still holds when detection misses</p>
+      <p>A test turns the injection detector off entirely, stores all 60 held-out injections as acme's notes, plays a model that obeys them (reads another tenant's note id, spoofs <code>owner</code>, searches for the other tenant's secret), and checks that globex data never appears in any result. <a href="https://github.com/Aarti-panchal01/mcp-tenant-gate/blob/main/tests/test_detection_miss_isolation.py" rel="noopener"><code>tests/test_detection_miss_isolation.py</code></a></p>
+      <p class="hint">Limit of this claim: it covers the demo notes server and two demo tenants. It shows an injection cannot cross tenants through the gateway. It does not stop an injection from changing what a model says to its own tenant.</p>
+    </div>
+  </section>
+
+  <!-- ============================== LIMITS -->
+  <section class="sec" id="limits" aria-labelledby="lim-title">
+    <div class="sec-head">
+      <div>
+        <p class="label">05 · Honest</p>
+        <h2 id="lim-title">Limits</h2>
+      </div>
+    </div>
+    <div class="lim-grid">
+      <ul class="limits">
+        <li><b>Wording detection is weak.</b> Rules plus the classifier withhold 45% of held-out injections. Paraphrase, role play and other languages get through. It is a cheap filter, not the defence.</li>
+        <li><b>Defence in depth, not a sandbox.</b> The gateway cannot see what an upstream does with its own credentials, network or disk. Upstreams still need least privilege.</li>
+        <li><b>Not audited.</b> Written in a few hours as a work sample. Do not put it in front of production data without a review.</li>
+        <li><b>API keys only, state in memory.</b> No OAuth, no key rotation. The ownership ledger is lost on restart, which fails closed.</li>
+        <li><b>Only tools/list and tools/call are proxied.</b> Resources, prompts, sampling and list-changed notifications are not.</li>
+      </ul>
+      <div class="panel livebox">
+        <p class="label">What is live and what is recorded</p>
+        <dl class="lr">
+          <dt><span class="chip chip-allow">LIVE</span></dt>
+          <dd>Every playground verdict and the Run the suite live button. Real gateway code in a Python serverless function, with in-process upstreams. <code>read_file</code> and <code>fetch_url</code> are dictionaries of fake data, and they only run if the argument guard lets the call through.</dd>
+          <dt><span class="chip chip-neutral">RECORDED</span></dt>
+          <dd>The held-out eval numbers, the error analysis, and the attack table until you press Run live.</dd>
+        </dl>
+        <p class="hint">The function is stateless. Your browser sends the ops it already ran plus a seed, and the server replays them, so note ids repeat exactly and every replayed op goes through every check again.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="foot-in">
+    <p>Built by <a href="https://aarti-panchal.site" rel="noopener">Aarti Panchal</a></p>
+    <ul>
+      <li><a href="https://github.com/Aarti-panchal01/mcp-tenant-gate" rel="noopener">Source</a></li>
+      <li><a href="https://github.com/Aarti-panchal01/mcp-tenant-gate/blob/main/WRITEUP.md" rel="noopener">WRITEUP.md</a></li>
+      <li><a href="https://github.com/Aarti-panchal01/mcp-tenant-gate/blob/main/ERROR-ANALYSIS.md" rel="noopener">ERROR-ANALYSIS.md</a></li>
+      <li><a href="https://github.com/Aarti-panchal01/mcp-tenant-gate/blob/main/results/attack-report.md" rel="noopener">attack-report.md</a></li>
+    </ul>
+  </div>
+</footer>
+</body>
+</html>
