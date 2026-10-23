@@ -3,6 +3,7 @@
 A security gateway that sits between an AI agent and its MCP servers. One gateway, many tenants: each API key sees only its own tools and its own data, and every tool definition and tool result is checked before the model reads it. It ships with a scripted attack suite that runs against a deliberately malicious MCP server.
 
 For a short, plain-words summary of what was built, how it was tested and what it still misses, see [WRITEUP.md](WRITEUP.md).
+For a read of the 33 held-out misses and why tenant isolation holds anyway, see [ERROR-ANALYSIS.md](ERROR-ANALYSIS.md).
 
 ## The problem
 
