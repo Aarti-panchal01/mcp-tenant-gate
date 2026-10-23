@@ -2,7 +2,6 @@
   "functions": {
     "api/gate.py": {
       "maxDuration": 30,
-      "memory": 1024,
       "includeFiles": "engine/**"
     }
   },
@@ -10,11 +9,40 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "X-Frame-Options", "value": "DENY" },
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'"
+        }
       ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/engine/:path*",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/api/:file(.*\\.py)",
+      "destination": "/",
+      "permanent": false
+    },
+    {
+      "source": "/requirements.txt",
+      "destination": "/",
+      "permanent": false
     }
   ]
 }
