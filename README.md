@@ -2,6 +2,8 @@
 
 A security gateway that sits between an AI agent and its MCP servers. One gateway, many tenants: each API key sees only its own tools and its own data, and every tool definition and tool result is checked before the model reads it. It ships with a scripted attack suite that runs against a deliberately malicious MCP server.
 
+**Live playground: https://mcp-tenant-gate.vercel.app** runs this gateway code in a Python serverless function (in-process upstreams, nothing fetched or read from disk). Source in [`site/`](site/); `site/engine/core` is a synced copy of the package (`python site/scripts/sync_core.py`, checked by a test).
+
 For a short, plain-words summary of what was built, how it was tested and what it still misses, see [WRITEUP.md](WRITEUP.md).
 For a read of the 33 held-out misses and why tenant isolation holds anyway, see [ERROR-ANALYSIS.md](ERROR-ANALYSIS.md).
 
@@ -118,7 +120,7 @@ Python 3.11+ (tested on 3.13, Windows 11).
 python -m venv .venv
 .venv\Scripts\activate          # or: source .venv/bin/activate
 pip install -r requirements.txt
-python -m pytest -q             # 151 tests, about 10 s, includes two end-to-end stdio tests
+python -m pytest -q             # 158 tests, about 10 s, includes two end-to-end stdio tests
 python -m attacks.suite
 ```
 
