@@ -2,6 +2,8 @@
 
 A security gateway that sits between an AI agent and its MCP servers. One gateway, many tenants: each API key sees only its own tools and its own data, and every tool definition and tool result is checked before the model reads it. It ships with a scripted attack suite that runs against a deliberately malicious MCP server.
 
+For a short, plain-words summary of what was built, how it was tested and what it still misses, see [WRITEUP.md](WRITEUP.md).
+
 ## The problem
 
 MCP servers are easy to write and easy to install, so teams end up wiring agents to servers they did not write. Three things go wrong:
@@ -115,7 +117,7 @@ Python 3.11+ (tested on 3.13, Windows 11).
 python -m venv .venv
 .venv\Scripts\activate          # or: source .venv/bin/activate
 pip install -r requirements.txt
-python -m pytest -q             # 136 tests, about 20 s, includes two end-to-end stdio tests
+python -m pytest -q             # 151 tests, about 10 s, includes two end-to-end stdio tests
 python -m attacks.suite
 ```
 
